@@ -1,0 +1,8 @@
+[app]
+version_file = "package.json"
+
+[app.build.dev-loop]
+build_cmd = "npm ci && npm run dev-loop"
+
+[app.build.dev-loop.build_inputs]
+include = ["package.json", "src/**", "public/**"]

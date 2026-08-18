@@ -1,0 +1,11 @@
+{
+  "name": "gcai-project",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.mjs",
+  "scripts": {
+    "dev-loop": "node --test",
+    "start": "node src/index.mjs"
+  }
+}
