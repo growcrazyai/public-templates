@@ -1,7 +1,8 @@
 # Working in this project
 
-This project was born from template `v1`. The layout below is a discipline, not a
-mechanism: nothing enforces it automatically, so honour it deliberately.
+This project was born from the `general-purpose` template line. The layout below
+is a discipline, not a mechanism: nothing enforces it automatically, so honour it
+deliberately.
 
 ## Who owns what
 
