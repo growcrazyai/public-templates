@@ -5,4 +5,15 @@ version_file = "package.json"
 build_cmd = "npm ci && npm run dev-loop"
 
 [app.build.dev-loop.build_inputs]
-include = ["package.json", "src/**", "public/**"]
+include = [
+  "package.json",
+  "package-lock.json",
+  ".npmrc",
+  ".gitignore",
+  "checks/**",
+  "src/**",
+  "public/**",
+  "module-map.json",
+  "AGENTS.md",
+  "sdlc.toml",
+]

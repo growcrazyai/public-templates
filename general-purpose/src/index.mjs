@@ -1,52 +1,38 @@
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { createRequestListener } from './http/router.mjs';
+
+export const SERVER_LIMITS = Object.freeze({
+  headersTimeout: 10_000,
+  requestTimeout: 30_000,
+  keepAliveTimeout: 5_000,
+  maxRequestsPerSocket: 1_000,
+});
+
+const DEFAULT_PORT = 3000;
 const PUBLIC_DIR = fileURLToPath(new URL('../public/', import.meta.url));
 
-const CONTENT_TYPES = {
-  '.html': 'text/html; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml',
-};
-
-function resolveAsset(urlPath) {
-  const requested = urlPath === '/' ? '/index.html' : urlPath;
-  const candidate = normalize(join(PUBLIC_DIR, decodeURIComponent(requested)));
-  return candidate.startsWith(PUBLIC_DIR) ? candidate : null;
+export function readConfig(env) {
+  const port = Number(env.PORT ?? DEFAULT_PORT);
+  if (!Number.isInteger(port) || port < 0 || port > 65_535) {
+    throw new Error(`invalid PORT: ${env.PORT}`);
+  }
+  return Object.freeze({ port, publicDir: PUBLIC_DIR });
 }
 
-export async function handler(request, response) {
-  const url = new URL(request.url, `http://${request.headers.host ?? 'localhost'}`);
-  const asset = resolveAsset(url.pathname);
-  if (asset === null) {
-    response.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' });
-    response.end('forbidden');
-    return;
-  }
-  try {
-    const body = await readFile(asset);
-    response.writeHead(200, {
-      'content-type': CONTENT_TYPES[extname(asset)] ?? 'application/octet-stream',
-    });
-    response.end(body);
-  } catch {
-    response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
-    response.end('not found');
-  }
-}
-
-export function createApp() {
-  return createServer(handler);
+export function createApp(config) {
+  const server = createServer(createRequestListener(config));
+  server.headersTimeout = SERVER_LIMITS.headersTimeout;
+  server.requestTimeout = SERVER_LIMITS.requestTimeout;
+  server.keepAliveTimeout = SERVER_LIMITS.keepAliveTimeout;
+  server.maxRequestsPerSocket = SERVER_LIMITS.maxRequestsPerSocket;
+  return server;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const port = Number(process.env.PORT ?? 3000);
-  createApp().listen(port, () => {
-    console.log(`listening on ${port}`);
+  const config = readConfig(process.env);
+  createApp(config).listen(config.port, () => {
+    console.log(`listening on ${config.port}`);
   });
 }

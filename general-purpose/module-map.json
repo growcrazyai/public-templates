@@ -1,5 +1,10 @@
 {
-  "app": "src/",
+  "app": "src/index.mjs",
+  "boundary": "src/http/",
+  "pure-logic": "src/core/",
+  "verification": "checks/",
   "static": "public/",
-  "manifest": "package.json"
+  "manifest": "package.json",
+  "build-contract": "sdlc.toml",
+  "concern-map": "module-map.json"
 }
