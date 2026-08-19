@@ -1,0 +1,107 @@
+store_container := "gcai-gate-store"
+store_image := "mongo:8.0.29@sha256:02a0cc7939f5ed38f30f9bc714ef5f682d49baf9350c54acf302ce833087fe8a"
+store_port := "27017"
+mongodb_uri := "mongodb://127.0.0.1:27017/?directConnection=true&replicaSet=rs0"
+backend_addr := "127.0.0.1:8080"
+backend_origin := "http://127.0.0.1:8080"
+frontend_port := "3000"
+frontend_origin := "http://127.0.0.1:3000"
+cargo_deny_version := "0.19.4"
+
+# The gate: ordered, fail-fast, cheap to expensive. This is the dev-loop
+# build label, the definition of done, and the conformance proof.
+gate: verify deps format lint typecheck unit build-backend proven-over-store audit
+
+verify:
+    node checks/verify.mjs
+
+deps:
+    cd web && npm ci
+
+format:
+    cargo fmt --check
+    cd web && npx prettier --check 'src/**/*.{ts,tsx,css}' next.config.ts eslint.config.mjs
+
+lint:
+    cargo clippy --workspace --all-targets -- -D warnings
+    cd web && npx eslint .
+
+typecheck:
+    cd web && npx tsc --noEmit
+
+unit:
+    cargo test --workspace --lib
+
+build-backend:
+    cargo build --workspace
+
+proven-over-store:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    trap 'just store-down' EXIT
+    just store-up
+    just contract
+    just contract-drift
+    just build-frontend
+    just e2e
+
+store-up:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    docker rm -f {{store_container}} >/dev/null 2>&1 || true
+    docker run -d --name {{store_container}} -p 127.0.0.1:{{store_port}}:27017 {{store_image}} mongod --replSet rs0 --bind_ip_all >/dev/null
+    for attempt in $(seq 1 60); do
+        if docker exec {{store_container}} mongosh --quiet --eval 'try { rs.status().ok } catch (e) { rs.initiate().ok }' >/dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+    done
+    for attempt in $(seq 1 60); do
+        if [ "$(docker exec {{store_container}} mongosh --quiet --eval 'try { rs.isMaster().ismaster } catch (e) { false }')" = "true" ]; then
+            echo "store: single-node replica set is primary"
+            exit 0
+        fi
+        sleep 1
+    done
+    echo "store: the replica set never elected a primary" >&2
+    exit 1
+
+store-down:
+    docker rm -f {{store_container}} >/dev/null 2>&1 || true
+
+contract:
+    MONGODB_URI='{{mongodb_uri}}' cargo test -p server --test contract
+
+contract-drift:
+    cargo run -q -p server --bin emit-openapi > contract/openapi.json
+    cd web && npx openapi-typescript ../contract/openapi.json -o src/generated/api.d.ts
+    test -z "$(git status --porcelain -- contract/ web/src/generated/)" || { git status --porcelain -- contract/ web/src/generated/; echo 'contract drift: regenerate and commit' >&2; exit 1; }
+
+build-frontend:
+    cd web && BACKEND_ORIGIN='{{backend_origin}}' npx next build
+    cd web && rm -rf .next/standalone/.next/static && cp -R .next/static .next/standalone/.next/static
+
+e2e:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    MONGODB_URI='{{mongodb_uri}}' BIND_ADDR='{{backend_addr}}' ./target/debug/server &
+    backend=$!
+    (cd web && PORT='{{frontend_port}}' HOSTNAME=127.0.0.1 node .next/standalone/server.js) &
+    frontend=$!
+    trap 'kill "$backend" "$frontend" 2>/dev/null || true' EXIT
+    FRONTEND_ORIGIN='{{frontend_origin}}' BACKEND_ORIGIN='{{backend_origin}}' node e2e/smoke.mjs
+
+audit:
+    cargo-deny --version | grep -Fx 'cargo-deny {{cargo_deny_version}}'
+    cargo-deny check advisories licenses sources
+    cd web && npm audit
+
+# The inner loop: watch-mode convenience, never the gate.
+dev:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just store-up
+    MONGODB_URI='{{mongodb_uri}}' BIND_ADDR='{{backend_addr}}' cargo run -p server --bin server &
+    backend=$!
+    trap 'kill "$backend" 2>/dev/null || true; just store-down' EXIT
+    cd web && BACKEND_ORIGIN='{{backend_origin}}' npm run dev

@@ -1,0 +1,21 @@
+[package]
+name = "server"
+edition.workspace = true
+version.workspace = true
+publish = false
+
+[dependencies]
+domain = { path = "../domain" }
+store-mongo = { path = "../store-mongo" }
+http-boundary = { path = "../http" }
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+axum.workspace = true
+mongodb.workspace = true
+utoipa.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[lints]
+workspace = true

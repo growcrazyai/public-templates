@@ -1,0 +1,28 @@
+[workspace]
+resolver = "3"
+members = ["crates/domain", "crates/store-mongo", "crates/http", "crates/server"]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+too_many_lines = "deny"
+
+[workspace.dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.20"
+tokio = { version = "1.53.1", features = ["full"] }
+axum = "0.8.9"
+mongodb = "3.8.0"
+utoipa = { version = "5.5.0", features = ["axum_extras"] }
+utoipa-axum = "0.2.0"
+tower = "0.5.3"
+tower-http = { version = "0.7.0", features = ["trace", "timeout", "limit"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+futures = "0.3"

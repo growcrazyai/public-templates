@@ -1,18 +1,24 @@
 [app]
-version_file = "package.json"
+version_file = "web/package.json"
+pkgs = ["nodejs_22", "rustup", "cargo-deny", "just", "docker", "git"]
 
 [app.build.dev-loop]
-build_cmd = "npm ci && npm run dev-loop"
+build_cmd = "just gate"
 
 [app.build.dev-loop.build_inputs]
 include = [
-  "package.json",
-  "package-lock.json",
-  ".npmrc",
-  ".gitignore",
+  "justfile",
   "checks/**",
-  "src/**",
-  "public/**",
+  "contract/**",
+  "crates/**",
+  "e2e/**",
+  "web/**",
+  "Cargo.toml",
+  "Cargo.lock",
+  "rust-toolchain.toml",
+  "deny.toml",
+  ".nvmrc",
+  ".gitignore",
   "module-map.json",
   "AGENTS.md",
   "sdlc.toml",

@@ -1,10 +1,15 @@
 {
-  "app": "src/index.mjs",
-  "boundary": "src/http/",
-  "pure-logic": "src/core/",
+  "orchestration": "justfile",
   "verification": "checks/",
-  "static": "public/",
-  "manifest": "package.json",
+  "contract": "contract/",
+  "domain": "crates/domain/",
+  "persistence": "crates/store-mongo/",
+  "api-boundary": "crates/http/",
+  "composition": "crates/server/",
+  "experience": "web/",
+  "generated-client": "web/src/generated/",
+  "seam-witness": "e2e/",
+  "workspace-manifest": "Cargo.toml",
   "build-contract": "sdlc.toml",
   "concern-map": "module-map.json"
 }

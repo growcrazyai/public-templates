@@ -1,0 +1,20 @@
+[package]
+name = "http-boundary"
+edition.workspace = true
+version.workspace = true
+publish = false
+
+[dependencies]
+domain = { path = "../domain" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+axum.workspace = true
+utoipa.workspace = true
+utoipa-axum.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true
